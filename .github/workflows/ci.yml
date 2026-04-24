@@ -82,3 +82,30 @@ jobs:
           github_token: ${{ github.token }}
           publish_branch: badges
           publish_dir: ./badge-data
+
+  test-supported-go:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version:
+          - "1.25"
+          - "1.26"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test ./...
