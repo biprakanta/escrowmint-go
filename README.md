@@ -49,6 +49,17 @@ The Go client should expose:
 - typed Go errors
 - integration tests against a real Redis instance
 
+The current implementation includes:
+
+- `TryConsume`
+- `Reserve`
+- `Commit`
+- `Cancel`
+- `GetState`
+- typed sentinel errors
+- Docker-backed Redis integration tests
+- TTL-based lazy reservation reclamation for crash recovery
+
 ## Development
 
 EscrowMint Go uses native Go modules for dependency management.
@@ -56,10 +67,15 @@ EscrowMint Go uses native Go modules for dependency management.
 Common commands:
 
 - `go test ./...`
+- `go test ./... -cover`
 - `go mod tidy`
 - `gofmt -w ./...`
 
 Consumers will install it with `go get` once the repository is published and tagged.
+
+The test suite starts a temporary Redis container with Docker. Running `go test ./...` requires a working local Docker installation.
+
+Expired reservations are released lazily on the next mutation or `GetState` call for the same resource. V1 does not run a background sweeper.
 
 ## Publishing
 
