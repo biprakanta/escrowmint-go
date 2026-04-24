@@ -60,6 +60,18 @@ func TestReserveRejectsInvalidInputs(t *testing.T) {
 	}
 }
 
+func TestGeneratedIDsUseExpectedPrefixes(t *testing.T) {
+	if got := newOperationID(); !strings.HasPrefix(got, "op-") {
+		t.Fatalf("unexpected operation id %q", got)
+	}
+	if got := newReservationID(); !strings.HasPrefix(got, "res-") {
+		t.Fatalf("unexpected reservation id %q", got)
+	}
+	if got := newLeaseID(); !strings.HasPrefix(got, "lease-") {
+		t.Fatalf("unexpected lease id %q", got)
+	}
+}
+
 func TestTryConsumeAndGetStateIntegration(t *testing.T) {
 	ctx := context.Background()
 	redisURL := startRedisContainer(t)

@@ -2,6 +2,7 @@ package escrowmint
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -467,13 +468,21 @@ func requestFingerprint(resource string, amount int64) string {
 }
 
 func newOperationID() string {
-	return fmt.Sprintf("%d", time.Now().UnixNano())
+	return "op-" + newRandomID()
 }
 
 func newReservationID() string {
-	return fmt.Sprintf("res-%d", time.Now().UnixNano())
+	return "res-" + newRandomID()
 }
 
 func newLeaseID() string {
-	return fmt.Sprintf("lease-%d", time.Now().UnixNano())
+	return "lease-" + newRandomID()
+}
+
+func newRandomID() string {
+	var buf [16]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(buf[:])
 }
