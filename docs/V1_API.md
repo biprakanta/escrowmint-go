@@ -51,6 +51,7 @@ type Reservation struct {
     Resource      string
     Amount        int64
     ExpiresAtMS   int64
+    Status        string
 }
 
 type ResourceState struct {
@@ -63,7 +64,7 @@ type ResourceState struct {
 type Client interface {
     TryConsume(ctx context.Context, resource string, amount int64, opts ConsumeOptions) (ConsumeResult, error)
     Reserve(ctx context.Context, resource string, amount int64, ttlMs int64, opts ReserveOptions) (Reservation, error)
-    Commit(ctx context.Context, resource string, reservationID string, opts CommitOptions) (ConsumeResult, error)
+    Commit(ctx context.Context, resource string, reservationID string) (ConsumeResult, error)
     Cancel(ctx context.Context, resource string, reservationID string) (bool, error)
     GetState(ctx context.Context, resource string) (ResourceState, error)
 }
@@ -99,6 +100,7 @@ Common errors:
 - succeeds only if `available >= amount`
 - moves units from available to reserved
 - creates a reservation with expiry
+- expired reservations are reclaimed lazily on the next mutation or `GetState`
 - same reservation ID must be safe to retry
 
 ### `Commit`
@@ -115,6 +117,7 @@ Common errors:
 ### `GetState`
 
 - returns current logical view for one resource
+- performs lazy expiry reclaim for that resource before returning
 - v1 does not promise a globally linearizable read across multiple resources
 
 ## Recommended Defaults

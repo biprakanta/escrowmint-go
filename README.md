@@ -38,16 +38,9 @@ The minimal primitives are:
 
 These operations are executed atomically in Redis via Lua scripts or Redis Functions.
 
-## Planned Module
+## Module
 
-The intended module path is `github.com/biprakanta/escrowmint-go`.
-
-The Go client should expose:
-
-- a small `Client` interface
-- Redis-backed atomic operations via Lua scripts
-- typed Go errors
-- integration tests against a real Redis instance
+The module path is `github.com/biprakanta/escrowmint-go`.
 
 The current implementation includes:
 
@@ -88,15 +81,18 @@ The intended module path is [go.mod](/Users/biprakantapal/Desktop/codex-plugins/
 ```text
 escrowmint-go/
   README.md
+  LICENSE
   go.mod
   docs/
     ARCHITECTURE.md
     V1_API.md
+    V2_ESCROW.md
   scripts/
     try_consume.lua
-    reserve.lua
-    commit.lua
-    cancel.lua
+    README.md
+  .github/
+    workflows/
+      ci.yml
   escrowmint/
 ```
 
