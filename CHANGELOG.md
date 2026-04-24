@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0](https://github.com/biprakanta/escrowmint-go/compare/escrowmint-go-v0.1.0...escrowmint-go-v0.2.0) (2026-04-24)
+
+
+### Features
+
+* bootstrap first release flow ([ad0ce87](https://github.com/biprakanta/escrowmint-go/commit/ad0ce875a351d7c507ec3fca8118ea571dcb6fcd))
+* bootstrap first release flow ([951ab88](https://github.com/biprakanta/escrowmint-go/commit/951ab88fb77b130e6a9618346ae2fa5e2c9da934))
+
+## Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
