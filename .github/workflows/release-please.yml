@@ -17,9 +17,36 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      releases_created: ${{ steps.release.outputs.releases_created }}
     steps:
       - name: Run release-please
+        id: release
         uses: googleapis/release-please-action@v5
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  verify-release:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' || needs.release-please.outputs.releases_created == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+      - name: Run vet
+        run: go vet ./...
+
+      - name: Run tests
+        run: go test ./... -coverprofile=coverage.out
