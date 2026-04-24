@@ -49,6 +49,24 @@ The Go client should expose:
 - typed Go errors
 - integration tests against a real Redis instance
 
+## Development
+
+EscrowMint Go uses native Go modules for dependency management.
+
+Common commands:
+
+- `go test ./...`
+- `go mod tidy`
+- `gofmt -w ./...`
+
+Consumers will install it with `go get` once the repository is published and tagged.
+
+## Publishing
+
+Go modules are published by pushing the repository and creating semantic-version tags such as `v0.1.0`.
+
+The intended module path is [go.mod](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/go.mod): `github.com/biprakanta/escrowmint-go`.
+
 ## Proposed Repo Layout
 
 ```text
