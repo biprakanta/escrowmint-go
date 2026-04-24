@@ -81,6 +81,7 @@ Common errors:
 - `ErrReservationExpired`
 - `ErrReservationAlreadyCommitted`
 - `ErrDuplicateIdempotencyConflict`
+- `ErrCorruptState`
 - `ErrInvalidAmount`
 - `ErrInvalidTTL`
 - `ErrBackendUnavailable`
@@ -101,6 +102,7 @@ Common errors:
 - moves units from available to reserved
 - creates a reservation with expiry
 - expired reservations are reclaimed lazily on the next mutation or `GetState`
+- active reservations are indexed by expiry time so reclaim does not require a full reservation scan
 - same reservation ID must be safe to retry
 
 ### `Commit`
@@ -108,6 +110,7 @@ Common errors:
 - turns a valid live reservation into permanent consumption
 - must be idempotent
 - expired reservations must not commit
+- terminal results are preserved in short-lived receipt keys for retry safety
 
 ### `Cancel`
 
@@ -117,7 +120,7 @@ Common errors:
 ### `GetState`
 
 - returns current logical view for one resource
-- performs lazy expiry reclaim for that resource before returning
+- performs bounded lazy expiry reclaim for that resource before returning
 - v1 does not promise a globally linearizable read across multiple resources
 
 ## Recommended Defaults

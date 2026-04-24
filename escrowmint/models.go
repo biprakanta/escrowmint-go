@@ -20,3 +20,20 @@ type ResourceState struct {
 	Reserved  int64
 	Version   int64
 }
+
+type ChunkLease struct {
+	LeaseID     string `json:"lease_id"`
+	Resource    string `json:"resource"`
+	OwnerID     string `json:"owner_id"`
+	Granted     int64  `json:"granted"`
+	Remaining   int64  `json:"remaining"`
+	ExpiresAtMS int64  `json:"expires_at_ms"`
+	Status      string `json:"status"`
+}
+
+type ChunkConsumeResult struct {
+	Applied     bool   `json:"applied"`
+	LeaseID     string `json:"lease_id"`
+	Remaining   int64  `json:"remaining"`
+	ExpiresAtMS int64  `json:"expires_at_ms"`
+}
