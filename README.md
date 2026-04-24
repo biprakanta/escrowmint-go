@@ -1,6 +1,10 @@
-# EscrowMint Go
+<p align="center">
+  <img src="logo.png" alt="EscrowMint logo" width="180">
+</p>
 
-Exact, Redis-backed bounded consumption for shared quotas.
+<h1 align="center">EscrowMint Go</h1>
+
+<p align="center">Exact, Redis-backed bounded consumption for shared quotas.</p>
 
 EscrowMint Go is for cases where many threads, processes, or services need to consume from the same global quota without letting it go below zero.
 
