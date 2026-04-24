@@ -50,3 +50,37 @@ jobs:
 
       - name: Run tests
         run: go test ./... -coverprofile=coverage.out
+
+      - name: Run consumer smoke test
+        run: |
+          tmpdir="$(mktemp -d)"
+          cat > "${tmpdir}/go.mod" <<EOF
+          module smoke
+
+          go 1.22.0
+
+          require github.com/biprakanta/escrowmint-go v0.0.0
+
+          replace github.com/biprakanta/escrowmint-go => ${GITHUB_WORKSPACE}
+          EOF
+          cat > "${tmpdir}/main.go" <<'EOF'
+          package main
+
+          import (
+            "context"
+            "fmt"
+
+            "github.com/biprakanta/escrowmint-go/escrowmint"
+          )
+
+          func main() {
+            client, err := escrowmint.NewClient(context.Background(), escrowmint.Config{})
+            if err != nil {
+              panic(err)
+            }
+            fmt.Println(client.Config().KeyPrefix)
+          }
+          EOF
+          cd "${tmpdir}"
+          go mod tidy
+          go run .

@@ -109,3 +109,52 @@ jobs:
 
       - name: Run tests
         run: go test ./...
+
+  consumer-smoke:
+    needs:
+      - test
+      - test-supported-go
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run consumer smoke test
+        run: |
+          tmpdir="$(mktemp -d)"
+          cat > "${tmpdir}/go.mod" <<EOF
+          module smoke
+
+          go 1.22.0
+
+          require github.com/biprakanta/escrowmint-go v0.0.0
+
+          replace github.com/biprakanta/escrowmint-go => ${GITHUB_WORKSPACE}
+          EOF
+          cat > "${tmpdir}/main.go" <<'EOF'
+          package main
+
+          import (
+            "context"
+            "fmt"
+
+            "github.com/biprakanta/escrowmint-go/escrowmint"
+          )
+
+          func main() {
+            client, err := escrowmint.NewClient(context.Background(), escrowmint.Config{})
+            if err != nil {
+              panic(err)
+            }
+            fmt.Println(client.Config().KeyPrefix)
+          }
+          EOF
+          cd "${tmpdir}"
+          go mod tidy
+          go run .
