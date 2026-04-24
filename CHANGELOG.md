@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1](https://github.com/biprakanta/escrowmint-go/compare/v0.2.0...v0.2.1) (2026-04-24)
+
+
+### Bug Fixes
+
+* harden Go release and client lifecycle ([#4](https://github.com/biprakanta/escrowmint-go/issues/4)) ([29e0f51](https://github.com/biprakanta/escrowmint-go/commit/29e0f51d89cba21edfa864af262aa9112fcf2d5c))
+* use plain release tags ([4a343ba](https://github.com/biprakanta/escrowmint-go/commit/4a343ba0b91e5758d37e13f90ee0cc314d49096a))
+
 ## [0.2.0](https://github.com/biprakanta/escrowmint-go/compare/escrowmint-go-v0.1.0...escrowmint-go-v0.2.0) (2026-04-24)
 
 
