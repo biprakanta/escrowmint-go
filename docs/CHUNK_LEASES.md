@@ -1,6 +1,6 @@
-# V2 Escrow / Chunk Allocation
+# Chunk Lease Path
 
-This document describes the shipped v2 chunk-lease model for very hot resources.
+This document describes the shipped chunk-lease model for very hot resources.
 
 The current client now supports the authoritative lease lifecycle in Redis:
 
@@ -10,30 +10,30 @@ The current client now supports the authoritative lease lifecycle in Redis:
 - `ReleaseChunk`
 - `GetChunk`
 
-## Why V2 Exists
+## Why The Chunk Lease Path Exists
 
-The v1 model gives exact correctness for a single resource, but each resource is still serialized at Redis.
+The direct path gives exact correctness for a single resource, but each resource is still serialized at Redis.
 
 That is usually fine until one resource becomes extremely hot. At that point, the bottleneck is not correctness. The bottleneck is that every request still reaches the same authoritative resource state.
 
-V2 addresses that by allocating chunks of quota to workers.
+The chunk lease path addresses that by adding explicit worker-owned chunk leases to the same overall correctness model.
 
 ## Core Idea
 
-Instead of asking Redis to approve every consume:
+Instead of operating only through the resource-global reservation and consume path:
 
 1. Redis remains the source of truth for total quota.
 2. A worker reserves a chunk such as `100` units from the resource.
-3. The worker consumes against that chunk instead of touching the resource-global availability on every operation.
-4. When the local chunk runs low, the worker refills from Redis.
+3. The worker consumes against that chunk through the lease lifecycle.
+4. When the chunk runs low, the worker can refill by allocating another chunk.
 5. If the worker crashes, the unspent part of the chunk returns after lease expiry.
 
 This is an escrow model.
 
 ## Expected Benefits
 
-- higher throughput for very hot keys
-- lower Redis round trips on the hot path
+- clearer ownership and accounting for very hot keys
+- a better foundation for higher-throughput hot-resource patterns
 - preserved no-overspend guarantee
 - bounded loss on worker crash, limited to leased chunk size until expiry
 
@@ -43,6 +43,19 @@ This is an escrow model.
 - temporary stranded quota while a worker lease is still active
 - weaker per-request visibility into the exact remaining global `available` count
 - more tuning around chunk size and refill thresholds
+- no automatic in-process fast path in the shipped API
+
+## Important Clarification
+
+The shipped chunk API is still authoritative and Redis-backed.
+
+That means:
+
+- `ConsumeChunk` still updates Redis-backed lease state
+- the chunk lease path does not replace the direct path; it adds an explicit worker-owned lease path
+- the chunk lease path by itself does not guarantee fewer Redis round trips per consume than a custom local buffered consumer would
+
+If you want a true local hot path, build it on top of the chunk lease lifecycle by allocating a chunk from Redis and then managing a small in-process sub-allocation buffer per worker.
 
 ## Current Concepts
 
@@ -70,7 +83,7 @@ That allows:
 - lease heartbeats
 - lease reclaim on timeout
 
-## Current V2 API
+## Current Chunk API
 
 Go-style sketch:
 
@@ -119,7 +132,7 @@ Resource-local keys:
 
 ## Invariants
 
-V2 must preserve:
+The chunk lease path must preserve:
 
 - `available >= 0`
 - `reserved >= 0`
@@ -151,8 +164,8 @@ V2 must preserve:
 
 ## Rollout Guidance
 
-- keep v1 APIs as the default path for ordinary resources
-- use v2 only for explicitly hot resources
+- keep the direct-path APIs as the default path for ordinary resources
+- use the chunk lease path only for explicitly hot resources
 - choose a stable per-worker `owner_id`
 - use renew or release to keep leases tidy when workers are healthy
 - rely on expiry reclaim as the safety net for abandoned active leases

@@ -93,9 +93,9 @@ client.Cancel(ctx, resource, reservationID)
 client.GetState(ctx, resource)
 ```
 
-## V2 Chunk Leases
+## Chunk Lease Path
 
-EscrowMint Go now also ships the explicit v2 chunk-lease lifecycle for hot resources:
+EscrowMint Go also ships an explicit chunk-lease lifecycle for hot resources:
 
 ```go
 lease, err := client.AllocateChunk(ctx, "wallet:123", 100, escrowmint.AllocateChunkOptions{
@@ -125,23 +125,30 @@ This is the authoritative distributed chunk path. It keeps chunk state in Redis 
 - Expired reservations are reclaimed lazily in bounded batches on the next touch of that resource.
 - Terminal reservation outcomes are moved into short-lived receipt keys so the hot reservation hash stays small.
 
-## V1 vs V2
+## Direct Path and Chunk Lease Path
 
-Use the current v1 model for most workloads:
+EscrowMint currently ships both models.
 
-- exact correctness
-- simple Redis-first deployment
-- reservation lifecycle with crash recovery
+The direct path is the shared-resource path:
 
-Use v2 chunk leases when a resource needs an explicit worker-owned allocation model:
+- `TryConsume`, `Reserve`, `Commit`, and `Cancel`
+- exact bounded updates against the resource's shared state
+- the simplest way to get correctness and crash recovery
 
-- escrow or chunk allocation per worker
-- cleaner lease-level accounting than touching global availability on every operation
-- more complexity in exchange for better control over very hot resources
+The chunk lease path adds a worker-owned lease layer on top of that model:
 
-The current v2 implementation is the authoritative lease lifecycle. A purely local in-process chunk buffer is still something callers can layer on top if they want to trade off crash recovery for fewer network round trips.
+- `AllocateChunk`, `ConsumeChunk`, `RenewChunk`, `ReleaseChunk`, and `GetChunk`
+- explicit escrow or chunk allocation per worker
+- better control over hot-resource ownership, refill, expiry, and reclaim
+- more operational complexity than the direct path
 
-See [docs/V2_ESCROW.md](docs/V2_ESCROW.md).
+Choose the direct path when you want the simplest exact path.
+
+Choose the chunk lease path when a resource benefits from explicit worker-level quota management.
+
+The current chunk lease implementation is an authoritative Redis-backed lease lifecycle. It improves the state model for hot resources, but it does not automatically become a no-Redis local fast path. If you want fewer Redis round trips than the shipped chunk API provides, you can layer an in-process chunk consumer on top of the authoritative lease lifecycle.
+
+See [docs/CHUNK_LEASES.md](docs/CHUNK_LEASES.md).
 
 ## Development
 
@@ -160,7 +167,7 @@ Notes:
 
 ## Docs
 
-- [V1 API](docs/V1_API.md)
+- [Direct Path API](docs/DIRECT_API.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [V2 Escrow Design](docs/V2_ESCROW.md)
+- [Chunk Lease Design](docs/CHUNK_LEASES.md)
 - [Lua Script Notes](scripts/README.md)
