@@ -24,5 +24,3 @@ SemVer mapping:
 4. The existing tag workflow verifies the tagged release commit.
 
 Prefer squash merges so the final commit title on `main` is a clean Conventional Commit.
-
-See [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) for the release operator checklist.
