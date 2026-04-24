@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/biprakanta/escrowmint-go/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/biprakanta/escrowmint-go/ci.yml?branch=main&label=CI"></a>
-  <img alt="Coverage" src="https://img.shields.io/badge/coverage-86.3%25-green">
+  <img alt="Coverage" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/biprakanta/escrowmint-go/badges/coverage.json">
   <a href="https://github.com/biprakanta/escrowmint-go/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/biprakanta/escrowmint-go"></a>
   <a href="https://pkg.go.dev/github.com/biprakanta/escrowmint-go/escrowmint"><img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/biprakanta/escrowmint-go/escrowmint.svg"></a>
 </p>

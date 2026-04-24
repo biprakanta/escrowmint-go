@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
@@ -34,4 +34,35 @@ jobs:
         run: go vet ./...
 
       - name: Run tests
-        run: go test ./... -cover
+        run: go test ./... -cover | tee go-test-output.txt
+
+      - name: Generate coverage badge data
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          coverage="$(sed -n 's/.*coverage: \([0-9.]\+%\) of statements/\1/p' go-test-output.txt | tail -1)"
+          if [ -z "$coverage" ]; then
+            echo "Could not find coverage in go test output" >&2
+            exit 1
+          fi
+
+          value="${coverage%\%}"
+          color="$(awk -v v="$value" 'BEGIN {
+            if (v + 0 >= 90) print "brightgreen";
+            else if (v + 0 >= 80) print "green";
+            else if (v + 0 >= 70) print "yellow";
+            else if (v + 0 >= 60) print "orange";
+            else print "red";
+          }')"
+
+          mkdir -p badge-data
+          cat > badge-data/coverage.json <<EOF
+          {"schemaVersion":1,"label":"coverage","message":"${coverage}","color":"${color}"}
+          EOF
+
+      - name: Publish coverage badge data
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ github.token }}
+          publish_branch: badges
+          publish_dir: ./badge-data
