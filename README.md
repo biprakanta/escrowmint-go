@@ -110,9 +110,10 @@ escrowmint-go/
 
 ## Future Extensions
 
+- v2 escrow or chunk allocation for very hot resources
 - Go benchmarks
 - background scavenging helpers
 - metrics exporters
 - Redis Functions as the default backend
 
-See [docs/V1_API.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V1_API.md) and [docs/ARCHITECTURE.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/ARCHITECTURE.md) for the initial design.
+See [docs/V1_API.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V1_API.md), [docs/ARCHITECTURE.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/ARCHITECTURE.md), and [docs/V2_ESCROW.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V2_ESCROW.md) for the current and next-step design.
