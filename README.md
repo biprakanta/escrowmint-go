@@ -165,9 +165,21 @@ Notes:
 - tests use Docker-backed Redis integration cases
 - current local coverage is over 90%
 
+## Release Process
+
+EscrowMint Go uses Conventional Commits and Release Please for semantic versioning and release notes.
+
+- `fix:` -> patch release
+- `feat:` -> minor release
+- `feat!:` or `BREAKING CHANGE:` -> major release
+
+When releasable commits land on `main`, Release Please opens or updates a release PR. Merging that PR updates [CHANGELOG.md](CHANGELOG.md), creates the `vX.Y.Z` tag, and creates the GitHub release notes. The existing tag workflow then verifies the tagged release commit.
+
 ## Docs
 
 - [Direct Path API](docs/DIRECT_API.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Chunk Lease Design](docs/CHUNK_LEASES.md)
 - [Lua Script Notes](scripts/README.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
