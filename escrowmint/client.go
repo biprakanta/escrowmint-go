@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	redis "github.com/redis/go-redis/v9"
@@ -48,6 +49,8 @@ type Client struct {
 	renewChunk    *redis.Script
 	releaseChunk  *redis.Script
 	getChunk      *redis.Script
+	closeOnce     sync.Once
+	closeErr      error
 }
 
 func NewClient(_ context.Context, cfg Config) (*Client, error) {
@@ -84,6 +87,16 @@ func NewClient(_ context.Context, cfg Config) (*Client, error) {
 
 func (c *Client) Config() Config {
 	return c.cfg
+}
+
+func (c *Client) Close() error {
+	if c == nil || c.redis == nil {
+		return nil
+	}
+	c.closeOnce.Do(func() {
+		c.closeErr = c.redis.Close()
+	})
+	return c.closeErr
 }
 
 func (c *Client) TryConsume(ctx context.Context, resource string, amount int64, opts ConsumeOptions) (ConsumeResult, error) {
@@ -428,6 +441,8 @@ func mapRedisError(err error) error {
 	switch {
 	case strings.Contains(err.Error(), "CORRUPT_STATE"):
 		return ErrCorruptState
+	case strings.Contains(err.Error(), "client is closed"):
+		return ErrBackendUnavailable
 	case strings.Contains(err.Error(), "INVALID_AMOUNT"):
 		return ErrInvalidAmount
 	case strings.Contains(err.Error(), "INVALID_OWNER"):

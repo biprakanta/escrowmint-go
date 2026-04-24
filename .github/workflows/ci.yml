@@ -36,12 +36,12 @@ jobs:
         run: go vet ./...
 
       - name: Run tests
-        run: go test ./... -cover | tee go-test-output.txt
+        run: go test ./... -coverprofile=coverage.out | tee go-test-output.txt
 
       - name: Extract coverage
         id: coverage
         run: |
-          coverage="$(sed -n 's/.*coverage: \([0-9.]\+%\) of statements/\1/p' go-test-output.txt | tail -1)"
+          coverage="$(go tool cover -func=coverage.out | awk '/^total:/{print $NF}')"
           if [ -z "$coverage" ]; then
             echo "Could not find coverage in go test output" >&2
             exit 1

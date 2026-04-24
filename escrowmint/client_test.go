@@ -16,11 +16,26 @@ func TestNewClientDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Fatalf("Close returned error: %v", err)
+		}
+	})
 	if client.Config().KeyPrefix != "escrowmint" {
 		t.Fatalf("unexpected key prefix: %q", client.Config().KeyPrefix)
 	}
 	if client.Config().Addr != "localhost:6379" {
 		t.Fatalf("unexpected addr: %q", client.Config().Addr)
+	}
+}
+
+func TestClientCloseIsSafe(t *testing.T) {
+	client := newEmptyClient(t)
+	if err := client.Close(); err != nil {
+		t.Fatalf("first Close returned error: %v", err)
+	}
+	if err := client.Close(); err != nil {
+		t.Fatalf("second Close returned error: %v", err)
 	}
 }
 
@@ -936,6 +951,11 @@ func newEmptyClient(t *testing.T) *Client {
 	if err != nil {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Fatalf("Close returned error: %v", err)
+		}
+	})
 	return client
 }
 
@@ -946,6 +966,11 @@ func newTestClient(t *testing.T, redisURL string) *Client {
 	if err != nil {
 		t.Fatalf("NewClient returned error: %v", err)
 	}
+	t.Cleanup(func() {
+		if err := client.Close(); err != nil {
+			t.Fatalf("Close returned error: %v", err)
+		}
+	})
 	return client
 }
 
