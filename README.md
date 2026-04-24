@@ -1,115 +1,135 @@
 # EscrowMint Go
 
-EscrowMint Go is the Go client library for exact, Redis-backed bounded consumption.
+Exact, Redis-backed bounded consumption for shared quotas.
 
-It is designed for cases where many threads, processes, or services need to consume from a shared global quota without allowing the value to go below zero.
+EscrowMint Go is for cases where many threads, processes, or services need to consume from the same global quota without letting it go below zero.
 
-Examples:
+Good fits:
 
-- prepaid credit consumption
+- prepaid credits
 - inventory reservation
 - budget caps
 - worker permit pools
 - campaign spend controls
 
-## Why This Exists
+## Why EscrowMint
 
-There are many good Redis libraries for locks, semaphores, and rate limiting. There are far fewer Go libraries that focus on this narrower contract:
+EscrowMint is not a generic counter library. It is a quota and reservation library with application-level semantics:
 
-- consume from a shared quota
-- never overspend
-- support reservations with expiry
-- stay fast under distributed contention
-- expose clean application-level semantics
+- exact bounded decrement
+- idempotent consume
+- reservation with TTL
+- commit and cancel flow
+- crash recovery via lazy expiry reclaim
 
-That is the gap EscrowMint Go is intended to fill.
+## Install
 
-## Core Model
+```bash
+go get github.com/biprakanta/escrowmint-go/escrowmint
+```
 
-EscrowMint Go is not a generic counter library. It is a quota and reservation library.
+## Quickstart
 
-The minimal primitives are:
+```go
+package main
 
-- `TryConsume`
-- `Reserve`
-- `Commit`
-- `Cancel`
-- `GetState`
+import (
+	"context"
+	"log"
 
-These operations are executed atomically in Redis via Lua scripts or Redis Functions.
+	"github.com/biprakanta/escrowmint-go/escrowmint"
+)
 
-## Module
+func main() {
+	ctx := context.Background()
 
-The module path is `github.com/biprakanta/escrowmint-go`.
+	client, err := escrowmint.NewClient(ctx, escrowmint.Config{
+		URL: "redis://localhost:6379/0",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
-The current implementation includes:
+	result, err := client.TryConsume(ctx, "wallet:123", 5, escrowmint.ConsumeOptions{
+		IdempotencyKey: "req-001",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
-- `TryConsume`
-- `Reserve`
-- `Commit`
-- `Cancel`
-- `GetState`
-- typed sentinel errors
-- Docker-backed Redis integration tests
-- TTL-based lazy reservation reclamation for crash recovery
+	log.Println(result.Applied, result.Remaining)
+}
+```
+
+## Crash-Safe Reservation
+
+```go
+reservation, err := client.Reserve(ctx, "wallet:123", 10, 30000, escrowmint.ReserveOptions{})
+if err != nil {
+	log.Fatal(err)
+}
+
+result, err := client.Commit(ctx, "wallet:123", reservation.ReservationID)
+if err != nil {
+	log.Fatal(err)
+}
+
+_ = result
+```
+
+If a worker crashes after `Reserve` but before `Commit`, the held quota is released after TTL expiry on the next mutation or `GetState` call for that same resource.
+
+## Current API
+
+```go
+client.TryConsume(ctx, resource, amount, opts)
+client.Reserve(ctx, resource, amount, ttlMS, opts)
+client.Commit(ctx, resource, reservationID)
+client.Cancel(ctx, resource, reservationID)
+client.GetState(ctx, resource)
+```
+
+## How It Works
+
+- Redis remains the source of truth for each resource.
+- Lua scripts make each operation atomic.
+- Reservations move units from `available` to `reserved`.
+- Expired reservations are reclaimed lazily on the next touch of that resource.
+
+## V1 vs V2
+
+Use the current v1 model for most workloads:
+
+- exact correctness
+- simple Redis-first deployment
+- reservation lifecycle with crash recovery
+
+Planned v2 is for very hot resources:
+
+- escrow or chunk allocation per worker
+- fewer Redis round trips on the hottest path
+- more complexity in exchange for higher throughput
+
+See [docs/V2_ESCROW.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V2_ESCROW.md).
 
 ## Development
 
-EscrowMint Go uses native Go modules for dependency management.
-
-Common commands:
-
-- `go test ./...`
-- `go test ./... -cover`
-- `go mod tidy`
-- `gofmt -w ./...`
-
-Consumers will install it with `go get` once the repository is published and tagged.
-
-The test suite starts a temporary Redis container with Docker. Running `go test ./...` requires a working local Docker installation.
-
-Expired reservations are released lazily on the next mutation or `GetState` call for the same resource. V1 does not run a background sweeper.
-
-## Publishing
-
-Go modules are published by pushing the repository and creating semantic-version tags such as `v0.1.0`.
-
-The intended module path is [go.mod](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/go.mod): `github.com/biprakanta/escrowmint-go`.
-
-## Proposed Repo Layout
-
-```text
-escrowmint-go/
-  README.md
-  LICENSE
-  go.mod
-  docs/
-    ARCHITECTURE.md
-    V1_API.md
-    V2_ESCROW.md
-  scripts/
-    try_consume.lua
-    README.md
-  .github/
-    workflows/
-      ci.yml
-  escrowmint/
+```bash
+go test ./...
+go test ./... -cover
+go mod tidy
+gofmt -w ./...
 ```
 
-## V1 Priorities
+Notes:
 
-1. Exact bounded decrement with idempotency
-2. Reservation lifecycle with TTL
-3. Clean errors and observability hooks
-4. Redis Cluster-safe keying strategy
-5. Go module packaging and test automation
+- module path is [go.mod](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/go.mod)
+- tests use Docker-backed Redis integration cases
+- current local coverage is over 90%
 
-## Future Extensions
+## Docs
 
-- v2 escrow or chunk allocation for very hot resources
-- Go benchmarks
-- background scavenging helpers
-- metrics exporters
-- Redis Functions as the default backend
-
-See [docs/V1_API.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V1_API.md), [docs/ARCHITECTURE.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/ARCHITECTURE.md), and [docs/V2_ESCROW.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V2_ESCROW.md) for the current and next-step design.
+- [V1 API](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V1_API.md)
+- [Architecture](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/ARCHITECTURE.md)
+- [V2 Escrow Design](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V2_ESCROW.md)
+- [Lua Script Notes](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/scripts/README.md)
