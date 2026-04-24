@@ -172,6 +172,12 @@ Notes:
 - module path is [go.mod](go.mod)
 - tests use Docker-backed Redis integration cases
 
+## Support
+
+- Go: `1.22+`
+- Redis: intended for modern Redis deployments that support Lua scripting and standard key expiry semantics
+- Stability: the package is approaching its first public `0.1.x` release; expect the core API to be much more stable than the surrounding release/docs tooling
+
 ## Release Process
 
 EscrowMint Go uses Conventional Commits and Release Please for semantic versioning and release notes.
@@ -190,3 +196,4 @@ When releasable commits land on `main`, Release Please opens or updates a releas
 - [Lua Script Notes](scripts/README.md)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
+- [Release Checklist](RELEASE_CHECKLIST.md)
