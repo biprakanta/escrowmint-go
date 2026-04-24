@@ -41,7 +41,7 @@ jobs:
       - name: Extract coverage
         id: coverage
         run: |
-          coverage="$(go tool cover -func=coverage.out | sed -n 's/^total:.* \([0-9.]\+%\)$/\1/p')"
+          coverage="$(go tool cover -func=coverage.out | awk '/^total:/{print $NF}')"
           if [ -z "$coverage" ]; then
             echo "Could not find coverage in go test output" >&2
             exit 1
