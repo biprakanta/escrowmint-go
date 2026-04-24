@@ -137,7 +137,7 @@ Use v2 chunk leases when a resource needs an explicit worker-owned allocation mo
 
 The current v2 implementation is the authoritative lease lifecycle. A purely local in-process chunk buffer is still something callers can layer on top if they want to trade off crash recovery for fewer network round trips.
 
-See [docs/V2_ESCROW.md](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V2_ESCROW.md).
+See [docs/V2_ESCROW.md](docs/V2_ESCROW.md).
 
 ## Development
 
@@ -150,13 +150,13 @@ gofmt -w ./...
 
 Notes:
 
-- module path is [go.mod](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/go.mod)
+- module path is [go.mod](go.mod)
 - tests use Docker-backed Redis integration cases
 - current local coverage is over 90%
 
 ## Docs
 
-- [V1 API](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V1_API.md)
-- [Architecture](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/ARCHITECTURE.md)
-- [V2 Escrow Design](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/docs/V2_ESCROW.md)
-- [Lua Script Notes](/Users/biprakantapal/Desktop/codex-plugins/escrowmint-go/scripts/README.md)
+- [V1 API](docs/V1_API.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [V2 Escrow Design](docs/V2_ESCROW.md)
+- [Lua Script Notes](scripts/README.md)
