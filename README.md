@@ -174,7 +174,8 @@ Notes:
 
 ## Support
 
-- Go: `1.22+`
+- Go module floor: `1.22+`
+- Tested in CI: `1.25` and `1.26`
 - Redis: intended for modern Redis deployments that support Lua scripting and standard key expiry semantics
 - Stability: the package is approaching its first public `0.1.x` release; expect the core API to be much more stable than the surrounding release/docs tooling
 
