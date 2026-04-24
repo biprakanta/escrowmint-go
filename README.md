@@ -6,6 +6,12 @@
 
 <p align="center">Exact, Redis-backed bounded consumption for shared quotas.</p>
 
+<p align="center">
+  <a href="https://github.com/biprakanta/escrowmint-go/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/biprakanta/escrowmint-go/ci.yml?branch=main&label=CI"></a>
+  <a href="https://github.com/biprakanta/escrowmint-go/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/biprakanta/escrowmint-go"></a>
+  <a href="https://pkg.go.dev/github.com/biprakanta/escrowmint-go/escrowmint"><img alt="Go Reference" src="https://pkg.go.dev/badge/github.com/biprakanta/escrowmint-go/escrowmint.svg"></a>
+</p>
+
 EscrowMint Go is for cases where many threads, processes, or services need to consume from the same global quota without letting it go below zero.
 
 Good fits:
@@ -163,7 +169,6 @@ Notes:
 
 - module path is [go.mod](go.mod)
 - tests use Docker-backed Redis integration cases
-- current local coverage is over 90%
 
 ## Release Process
 
