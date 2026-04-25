@@ -21,6 +21,7 @@ Lua
 md
 NOSCRIPT
 Observability
+PRs
 Quickstart
 README
 Redis
