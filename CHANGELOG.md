@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/biprakanta/escrowmint-go/compare/v0.2.2...v0.2.3) (2026-04-25)
+
+
+### Bug Fixes
+
+* allow PRs in go spellcheck ([#9](https://github.com/biprakanta/escrowmint-go/issues/9)) ([6c70c06](https://github.com/biprakanta/escrowmint-go/commit/6c70c0699e4de2018e45b0491d924901e4d0d76f))
+
 ## [0.2.2](https://github.com/biprakanta/escrowmint-go/compare/v0.2.1...v0.2.2) (2026-04-25)
 
 
