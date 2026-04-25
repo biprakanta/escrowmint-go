@@ -2,6 +2,7 @@ package escrowmint
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -53,6 +54,15 @@ func TestTryConsumeRejectsInvalidAmount(t *testing.T) {
 	}
 
 	_, err = client.TryConsume(context.Background(), "wallet:1", 0, ConsumeOptions{})
+	if !errors.Is(err, ErrInvalidAmount) {
+		t.Fatalf("expected ErrInvalidAmount, got %v", err)
+	}
+}
+
+func TestTopUpRejectsInvalidAmount(t *testing.T) {
+	client := newEmptyClient(t)
+
+	_, err := client.TopUp(context.Background(), "wallet:1", 0, TopUpOptions{})
 	if !errors.Is(err, ErrInvalidAmount) {
 		t.Fatalf("expected ErrInvalidAmount, got %v", err)
 	}
@@ -160,6 +170,54 @@ func TestTryConsumeIsIdempotentForRetries(t *testing.T) {
 	}
 }
 
+func TestTryConsumeReplaysLegacyIdempotencyRecords(t *testing.T) {
+	ctx := context.Background()
+	redisURL := startRedisContainer(t)
+	client := newTestClient(t, redisURL)
+	seedAvailable(t, redisURL, client.stateKey("wallet:125-legacy"), 6)
+
+	redisClient := redis.NewClient(mustParseRedisURL(t, redisURL))
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			t.Fatalf("Close returned error: %v", err)
+		}
+	}()
+
+	payload, err := json.Marshal(map[string]any{
+		"request_fingerprint": requestFingerprint("", "wallet:125-legacy", 4),
+		"applied":             true,
+		"remaining":           int64(6),
+		"operation_id":        "op-legacy",
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal returned error: %v", err)
+	}
+	if err := redisClient.Set(
+		ctx,
+		client.idempotencyKey("wallet:125-legacy", "req-legacy"),
+		payload,
+		time.Duration(client.Config().IdempotencyTTLMS)*time.Millisecond,
+	).Err(); err != nil {
+		t.Fatalf("Set returned error: %v", err)
+	}
+
+	result, err := client.TryConsume(ctx, "wallet:125-legacy", 4, ConsumeOptions{IdempotencyKey: "req-legacy"})
+	if err != nil {
+		t.Fatalf("TryConsume returned error: %v", err)
+	}
+	state, err := client.GetState(ctx, "wallet:125-legacy")
+	if err != nil {
+		t.Fatalf("GetState returned error: %v", err)
+	}
+
+	if !result.Applied || result.Remaining != 6 || result.OperationID != "op-legacy" {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if state.Available != 6 || state.Version != 0 {
+		t.Fatalf("unexpected state: %+v", state)
+	}
+}
+
 func TestTryConsumeRejectsConflictingIdempotencyReuse(t *testing.T) {
 	ctx := context.Background()
 	redisURL := startRedisContainer(t)
@@ -173,6 +231,101 @@ func TestTryConsumeRejectsConflictingIdempotencyReuse(t *testing.T) {
 	_, err := client.TryConsume(ctx, "wallet:126", 5, ConsumeOptions{IdempotencyKey: "req-2"})
 	if !errors.Is(err, ErrDuplicateIdempotencyConflict) {
 		t.Fatalf("expected ErrDuplicateIdempotencyConflict, got %v", err)
+	}
+}
+
+func TestTopUpAndGetStateIntegration(t *testing.T) {
+	ctx := context.Background()
+	redisURL := startRedisContainer(t)
+	client := newTestClient(t, redisURL)
+	seedAvailable(t, redisURL, client.stateKey("wallet:127"), 10)
+
+	result, err := client.TopUp(ctx, "wallet:127", 4, TopUpOptions{})
+	if err != nil {
+		t.Fatalf("TopUp returned error: %v", err)
+	}
+	state, err := client.GetState(ctx, "wallet:127")
+	if err != nil {
+		t.Fatalf("GetState returned error: %v", err)
+	}
+
+	if result.Added != 4 || result.Available != 14 {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if state.Available != 14 || state.Version != 1 {
+		t.Fatalf("unexpected state: %+v", state)
+	}
+}
+
+func TestTopUpIsIdempotentForRetries(t *testing.T) {
+	ctx := context.Background()
+	redisURL := startRedisContainer(t)
+	client := newTestClient(t, redisURL)
+	seedAvailable(t, redisURL, client.stateKey("wallet:128"), 10)
+
+	first, err := client.TopUp(ctx, "wallet:128", 4, TopUpOptions{IdempotencyKey: "top-up-1"})
+	if err != nil {
+		t.Fatalf("first TopUp returned error: %v", err)
+	}
+	second, err := client.TopUp(ctx, "wallet:128", 4, TopUpOptions{IdempotencyKey: "top-up-1"})
+	if err != nil {
+		t.Fatalf("second TopUp returned error: %v", err)
+	}
+	state, err := client.GetState(ctx, "wallet:128")
+	if err != nil {
+		t.Fatalf("GetState returned error: %v", err)
+	}
+
+	if first != second {
+		t.Fatalf("expected identical top-up results, got %+v and %+v", first, second)
+	}
+	if state.Available != 14 || state.Version != 1 {
+		t.Fatalf("unexpected state: %+v", state)
+	}
+}
+
+func TestTopUpRejectsConflictingIdempotencyReuse(t *testing.T) {
+	ctx := context.Background()
+	redisURL := startRedisContainer(t)
+	client := newTestClient(t, redisURL)
+	seedAvailable(t, redisURL, client.stateKey("wallet:129"), 10)
+
+	if _, err := client.TopUp(ctx, "wallet:129", 4, TopUpOptions{IdempotencyKey: "top-up-2"}); err != nil {
+		t.Fatalf("TopUp returned error: %v", err)
+	}
+
+	_, err := client.TopUp(ctx, "wallet:129", 5, TopUpOptions{IdempotencyKey: "top-up-2"})
+	if !errors.Is(err, ErrDuplicateIdempotencyConflict) {
+		t.Fatalf("expected ErrDuplicateIdempotencyConflict, got %v", err)
+	}
+}
+
+func TestTopUpReclaimsExpiredReservationsBeforeAdding(t *testing.T) {
+	ctx := context.Background()
+	redisURL := startRedisContainer(t)
+	client := newTestClient(t, redisURL)
+	seedAvailable(t, redisURL, client.stateKey("wallet:130"), 10)
+
+	if _, err := client.Reserve(ctx, "wallet:130", 4, 100, ReserveOptions{ReservationID: "res-topup"}); err != nil {
+		t.Fatalf("Reserve returned error: %v", err)
+	}
+
+	time.Sleep(150 * time.Millisecond)
+
+	result, err := client.TopUp(ctx, "wallet:130", 3, TopUpOptions{})
+	if err != nil {
+		t.Fatalf("TopUp returned error: %v", err)
+	}
+	state, err := client.GetState(ctx, "wallet:130")
+	if err != nil {
+		t.Fatalf("GetState returned error: %v", err)
+	}
+
+	if result.Added != 3 || result.Available != 13 {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if state.Available != 13 || state.Reserved != 0 || state.Version != 3 {
+		t.Fatalf("unexpected state: %+v", state)
 	}
 }
 

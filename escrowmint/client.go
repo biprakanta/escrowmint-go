@@ -26,6 +26,10 @@ type ConsumeOptions struct {
 	IdempotencyKey string
 }
 
+type TopUpOptions struct {
+	IdempotencyKey string
+}
+
 type ReserveOptions struct {
 	ReservationID string
 }
@@ -40,6 +44,7 @@ type Client struct {
 	cfg           Config
 	redis         redis.UniversalClient
 	tryConsume    *redis.Script
+	topUp         *redis.Script
 	reserve       *redis.Script
 	commit        *redis.Script
 	cancel        *redis.Script
@@ -73,6 +78,7 @@ func NewClient(_ context.Context, cfg Config) (*Client, error) {
 		cfg:           cfg,
 		redis:         rdb,
 		tryConsume:    redis.NewScript(tryConsumeLua),
+		topUp:         redis.NewScript(topUpLua),
 		reserve:       redis.NewScript(reserveLua),
 		commit:        redis.NewScript(commitLua),
 		cancel:        redis.NewScript(cancelLua),
@@ -118,7 +124,7 @@ func (c *Client) TryConsume(ctx context.Context, resource string, amount int64, 
 		amount,
 		newOperationID(),
 		c.cfg.IdempotencyTTLMS,
-		requestFingerprint(resource, amount),
+		requestFingerprint("", resource, amount),
 		c.cfg.IdempotencyTTLMS,
 	).Text()
 	if err != nil {
@@ -128,6 +134,39 @@ func (c *Client) TryConsume(ctx context.Context, resource string, amount int64, 
 	var result ConsumeResult
 	if err := json.Unmarshal([]byte(rawResult), &result); err != nil {
 		return ConsumeResult{}, fmt.Errorf("%w: decode try_consume result: %v", ErrCorruptState, err)
+	}
+	return result, nil
+}
+
+func (c *Client) TopUp(ctx context.Context, resource string, amount int64, opts TopUpOptions) (TopUpResult, error) {
+	if amount <= 0 {
+		return TopUpResult{}, ErrInvalidAmount
+	}
+
+	rawResult, err := c.topUp.Run(
+		ctx,
+		c.redis,
+		[]string{
+			c.stateKey(resource),
+			c.reservationsKey(resource),
+			c.expiriesKey(resource),
+			c.chunkLeasesKey(resource),
+			c.chunkExpiriesKey(resource),
+			c.idempotencyKey(resource, opts.IdempotencyKey),
+		},
+		amount,
+		newOperationID(),
+		c.cfg.IdempotencyTTLMS,
+		requestFingerprint("top_up", resource, amount),
+		c.cfg.IdempotencyTTLMS,
+	).Text()
+	if err != nil {
+		return TopUpResult{}, mapRedisError(err)
+	}
+
+	var result TopUpResult
+	if err := json.Unmarshal([]byte(rawResult), &result); err != nil {
+		return TopUpResult{}, fmt.Errorf("%w: decode top_up result: %v", ErrCorruptState, err)
 	}
 	return result, nil
 }
@@ -477,8 +516,12 @@ func mapRedisError(err error) error {
 	return fmt.Errorf("%w: %v", ErrBackendUnavailable, err)
 }
 
-func requestFingerprint(resource string, amount int64) string {
-	sum := sha256.Sum256([]byte(fmt.Sprintf("%s:%d", resource, amount)))
+func requestFingerprint(operation string, resource string, amount int64) string {
+	value := fmt.Sprintf("%s:%d", resource, amount)
+	if operation != "" && operation != "consume" {
+		value = fmt.Sprintf("%s:%s:%d", operation, resource, amount)
+	}
+	sum := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(sum[:])
 }
 
