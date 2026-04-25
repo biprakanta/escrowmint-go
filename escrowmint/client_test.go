@@ -2,6 +2,7 @@ package escrowmint
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
@@ -165,6 +166,54 @@ func TestTryConsumeIsIdempotentForRetries(t *testing.T) {
 		t.Fatalf("expected identical idempotent results, got %+v and %+v", first, second)
 	}
 	if state.Available != 6 || state.Version != 1 {
+		t.Fatalf("unexpected state: %+v", state)
+	}
+}
+
+func TestTryConsumeReplaysLegacyIdempotencyRecords(t *testing.T) {
+	ctx := context.Background()
+	redisURL := startRedisContainer(t)
+	client := newTestClient(t, redisURL)
+	seedAvailable(t, redisURL, client.stateKey("wallet:125-legacy"), 6)
+
+	redisClient := redis.NewClient(mustParseRedisURL(t, redisURL))
+	defer func() {
+		if err := redisClient.Close(); err != nil {
+			t.Fatalf("Close returned error: %v", err)
+		}
+	}()
+
+	payload, err := json.Marshal(map[string]any{
+		"request_fingerprint": requestFingerprint("", "wallet:125-legacy", 4),
+		"applied":             true,
+		"remaining":           int64(6),
+		"operation_id":        "op-legacy",
+	})
+	if err != nil {
+		t.Fatalf("json.Marshal returned error: %v", err)
+	}
+	if err := redisClient.Set(
+		ctx,
+		client.idempotencyKey("wallet:125-legacy", "req-legacy"),
+		payload,
+		time.Duration(client.Config().IdempotencyTTLMS)*time.Millisecond,
+	).Err(); err != nil {
+		t.Fatalf("Set returned error: %v", err)
+	}
+
+	result, err := client.TryConsume(ctx, "wallet:125-legacy", 4, ConsumeOptions{IdempotencyKey: "req-legacy"})
+	if err != nil {
+		t.Fatalf("TryConsume returned error: %v", err)
+	}
+	state, err := client.GetState(ctx, "wallet:125-legacy")
+	if err != nil {
+		t.Fatalf("GetState returned error: %v", err)
+	}
+
+	if !result.Applied || result.Remaining != 6 || result.OperationID != "op-legacy" {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+	if state.Available != 6 || state.Version != 0 {
 		t.Fatalf("unexpected state: %+v", state)
 	}
 }

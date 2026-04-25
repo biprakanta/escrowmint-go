@@ -124,7 +124,7 @@ func (c *Client) TryConsume(ctx context.Context, resource string, amount int64, 
 		amount,
 		newOperationID(),
 		c.cfg.IdempotencyTTLMS,
-		requestFingerprint("consume", resource, amount),
+		requestFingerprint("", resource, amount),
 		c.cfg.IdempotencyTTLMS,
 	).Text()
 	if err != nil {
@@ -517,7 +517,11 @@ func mapRedisError(err error) error {
 }
 
 func requestFingerprint(operation string, resource string, amount int64) string {
-	sum := sha256.Sum256([]byte(fmt.Sprintf("%s:%s:%d", operation, resource, amount)))
+	value := fmt.Sprintf("%s:%d", resource, amount)
+	if operation != "" && operation != "consume" {
+		value = fmt.Sprintf("%s:%s:%d", operation, resource, amount)
+	}
+	sum := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(sum[:])
 }
 
