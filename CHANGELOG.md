@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/biprakanta/escrowmint-go/compare/v0.2.4...v0.3.0) (2026-04-25)
+
+
+### Features
+
+* add consistent pool top-up API ([#14](https://github.com/biprakanta/escrowmint-go/issues/14)) ([e93f589](https://github.com/biprakanta/escrowmint-go/commit/e93f589f6c571dd77f01d73e64e6b8ac26e5d68a))
+
 ## [0.2.4](https://github.com/biprakanta/escrowmint-go/compare/v0.2.3...v0.2.4) (2026-04-25)
 
 
