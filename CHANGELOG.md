@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/biprakanta/escrowmint-go/compare/v0.2.3...v0.2.4) (2026-04-25)
+
+
+### Bug Fixes
+
+* exclude generated changelog from spellcheck ([#12](https://github.com/biprakanta/escrowmint-go/issues/12)) ([64df20a](https://github.com/biprakanta/escrowmint-go/commit/64df20a7183764389a17a32ee41467b46e1d3461))
+
 ## [0.2.3](https://github.com/biprakanta/escrowmint-go/compare/v0.2.2...v0.2.3) (2026-04-25)
 
 
