@@ -28,6 +28,7 @@ Good fits:
 
 EscrowMint is not a generic counter library. It is a quota and reservation library with application-level semantics:
 
+- consistent pool top-up
 - exact bounded decrement
 - idempotent consume
 - reservation with TTL
@@ -69,8 +70,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println(result.Applied, result.Remaining)
+log.Println(result.Applied, result.Remaining)
 }
+```
+
+## Top Up Pool
+
+```go
+result, err := client.TopUp(ctx, "wallet:123", 25, escrowmint.TopUpOptions{
+	IdempotencyKey: "credit-001",
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+log.Println(result.Added, result.Available)
 ```
 
 ## Crash-Safe Reservation
@@ -95,6 +109,7 @@ If a worker crashes after `Reserve` but before `Commit`, the held quota is relea
 
 ```go
 client.TryConsume(ctx, resource, amount, opts)
+client.TopUp(ctx, resource, amount, opts)
 client.Reserve(ctx, resource, amount, ttlMS, opts)
 client.Commit(ctx, resource, reservationID)
 client.Cancel(ctx, resource, reservationID)
@@ -129,6 +144,7 @@ This is the authoritative distributed chunk path. It keeps chunk state in Redis 
 - Redis remains the source of truth for each resource.
 - Lua scripts make each operation atomic.
 - Reservations move units from `available` to `reserved`.
+- Top-ups add units back into `available` without bypassing expiry reclaim.
 - Pending reservations are indexed by expiry time in Redis.
 - Expired reservations are reclaimed lazily in bounded batches on the next touch of that resource.
 - Terminal reservation outcomes are moved into short-lived receipt keys so the hot reservation hash stays small.
@@ -140,6 +156,7 @@ EscrowMint currently ships both models.
 The direct path is the shared-resource path:
 
 - `TryConsume`, `Reserve`, `Commit`, and `Cancel`
+- `TopUp` for consistent replenishment of the shared pool
 - exact bounded updates against the resource's shared state
 - the simplest way to get correctness and crash recovery
 

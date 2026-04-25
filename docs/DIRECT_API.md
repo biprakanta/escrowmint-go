@@ -46,6 +46,12 @@ type ConsumeResult struct {
     OperationID string
 }
 
+type TopUpResult struct {
+    Added       int64
+    Available   int64
+    OperationID string
+}
+
 type Reservation struct {
     ReservationID string
     Resource      string
@@ -63,6 +69,7 @@ type ResourceState struct {
 
 type Client interface {
     TryConsume(ctx context.Context, resource string, amount int64, opts ConsumeOptions) (ConsumeResult, error)
+    TopUp(ctx context.Context, resource string, amount int64, opts TopUpOptions) (TopUpResult, error)
     Reserve(ctx context.Context, resource string, amount int64, ttlMs int64, opts ReserveOptions) (Reservation, error)
     Commit(ctx context.Context, resource string, reservationID string) (ConsumeResult, error)
     Cancel(ctx context.Context, resource string, reservationID string) (bool, error)
@@ -93,6 +100,14 @@ Common errors:
 - succeeds only if `available >= amount`
 - permanently burns quota
 - returns `Applied=false` on insufficient quota
+- if an idempotency key is reused with the same request, returns the original result
+- if an idempotency key is reused with a conflicting request shape, returns `ErrDuplicateIdempotencyConflict`
+
+### `TopUp`
+
+- succeeds only if `amount > 0`
+- reclaims expired reservations and chunk leases for the resource before adding new quota
+- increments `available` atomically
 - if an idempotency key is reused with the same request, returns the original result
 - if an idempotency key is reused with a conflicting request shape, returns `ErrDuplicateIdempotencyConflict`
 

@@ -6,6 +6,12 @@ type ConsumeResult struct {
 	OperationID string `json:"operation_id"`
 }
 
+type TopUpResult struct {
+	Added       int64  `json:"added"`
+	Available   int64  `json:"available"`
+	OperationID string `json:"operation_id"`
+}
+
 type Reservation struct {
 	ReservationID string `json:"reservation_id"`
 	Resource      string `json:"resource"`
