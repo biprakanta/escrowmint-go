@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/biprakanta/escrowmint-go/compare/v0.2.1...v0.2.2) (2026-04-25)
+
+
+### Bug Fixes
+
+* use dedicated token for release-please PRs ([#7](https://github.com/biprakanta/escrowmint-go/issues/7)) ([a206142](https://github.com/biprakanta/escrowmint-go/commit/a2061426a8e8c72524ea29e3eee148371946ef1a))
+
 ## [0.2.1](https://github.com/biprakanta/escrowmint-go/compare/v0.2.0...v0.2.1) (2026-04-24)
 
 
