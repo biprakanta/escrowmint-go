@@ -62,6 +62,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer client.Close()
 
 	result, err := client.TryConsume(ctx, "wallet:123", 5, escrowmint.ConsumeOptions{
 		IdempotencyKey: "req-001",
@@ -70,7 +71,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-log.Println(result.Applied, result.Remaining)
+	log.Println(result.Applied, result.Remaining)
 }
 ```
 
@@ -194,7 +195,7 @@ Notes:
 - Go module floor: `1.22+`
 - Tested in CI: `1.25` and `1.26`
 - Redis: intended for modern Redis deployments that support Lua scripting and standard key expiry semantics
-- Stability: the package is approaching its first public `0.1.x` release; expect the core API to be much more stable than the surrounding release/docs tooling
+- Stability: the module is published and follows SemVer before `1.0`; breaking API changes remain possible, but release notes will call them out explicitly
 
 ## Release Process
 
